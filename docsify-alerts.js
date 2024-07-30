@@ -30,8 +30,7 @@
       border-left: 4px solid;
       display: flex;
       align-items: center;
-      color: inherit;
-      background: inherit;
+      color: black; /* Set text color to white */
     }
     .alert svg {
       margin-right: 0.5em;
