@@ -30,7 +30,7 @@
       border-left: 4px solid;
       display: flex;
       align-items: center;
-      color: black; /* Set text color to white */
+      color: var(--alert-text-color, black); /* Use CSS variable for text color */
     }
     .alert svg {
       margin-right: 0.5em;

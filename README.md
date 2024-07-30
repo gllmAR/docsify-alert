@@ -51,6 +51,7 @@ To use the `docsify-alerts` plugin in your Docsify project add the following scr
 
 ## Customisation
 
+
 You can override the default styles by specifying custom CSS in the alertStyles property in your index.html
 
 ```javascript
@@ -58,6 +59,11 @@ You can override the default styles by specifying custom CSS in the alertStyles 
   window.$docsify = {
     name: 'Your Documentation',
     repo: '',
+    loadSidebar: true,
+    subMaxLevel: 2,
+    alias: {
+      '/.*/_sidebar.md': '/_sidebar.md'
+    },
     alertStyles: `
       .alert.note {
         background-color: #e0f0ff;
@@ -78,6 +84,10 @@ You can override the default styles by specifying custom CSS in the alertStyles 
       .alert.caution {
         background-color: #ffe0e0;
         border-color: #ff2121;
+      }
+      /* Custom CSS variable to override text color */
+      :root {
+        --alert-text-color: black; /* Change this to the desired color */
       }
     `
   }
