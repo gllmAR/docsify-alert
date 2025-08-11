@@ -27,18 +27,25 @@
     .alert {
       border-radius: 4px;
       margin: 1em 0;
-      padding: 1em;
+      padding: 0.75em 1em; /* slightly tighter for single-line */
       border-left: 4px solid;
       display: flex;
-      align-items: flex-start; /* Align icon with the first line of text */
+      align-items: flex-start; /* Align icon with first line */
       color: var(--alert-text-color, black); /* Use CSS variable for text color */
+      line-height: 1.4;
     }
     .alert svg {
       margin-right: 0.5em;
       flex-shrink: 0; /* Prevent icon from shrinking */
       width: 16px; /* Ensure a fixed width */
       height: 16px; /* Ensure a fixed height */
+      margin-top: 2px; /* nudge icon to align with text cap height */
     }
+    .alert .alert-content { flex: 1; }
+    /* Remove excessive paragraph margins inside alerts */
+    .alert .alert-content > p { margin: 0.3em 0; }
+    .alert .alert-content > p:first-child { margin-top: 0; }
+    .alert .alert-content > p:last-child { margin-bottom: 0; }
     .alert.note {
       background-color: #e7f3fe;
       border-color: #2196f3;
@@ -128,31 +135,59 @@
       if (bq.dataset.alertProcessed) return;
       const firstP = bq.querySelector('p');
       if (!firstP) return;
-      const match = firstP.innerHTML.match(/^\[!(\w+)\]\s*(.*)$/);
-      if (!match) return;
-      const type = match[1].toUpperCase();
-      const alertType = alertTypes[type];
-      if (!alertType) return;
-      const remainder = match[2];
-      const contentNodes = [];
-      if (remainder) {
-        firstP.innerHTML = remainder; // keep first paragraph with remaining text
-        contentNodes.push(firstP);
-      } else {
-        firstP.remove();
+      const html = firstP.innerHTML.trim();
+      const markerRegex = /\[!(\w+)\]/g;
+      let m; const markers = [];
+      while ((m = markerRegex.exec(html)) !== null) {
+        markers.push({ type: m[1].toUpperCase(), index: m.index, len: m[0].length });
       }
-      // push remaining direct children (they are already rendered markdown: images, code blocks, etc.)
-      Array.from(bq.children).forEach(child => {
-        if (child !== firstP) contentNodes.push(child);
-      });
-      const contentHTML = contentNodes.map(n => n.outerHTML).join('');
-      const wrapper = document.createElement('div');
-      wrapper.className = `alert ${alertType.class}`;
-      wrapper.setAttribute('role', 'note');
-      wrapper.setAttribute('aria-label', type);
-      wrapper.innerHTML = `${alertType.icon}<div class="alert-content">${contentHTML}</div>`;
+      if (!markers.length) return; // no alert markers
+      // If only one marker at start proceed with original logic (allows multi-element content).
+      const onlySingleAtStart = markers.length === 1 && markers[0].index === 0;
+      if (onlySingleAtStart) {
+        const type = markers[0].type;
+        const alertType = alertTypes[type];
+        if (!alertType) return;
+        const remainder = html.slice(markers[0].len).trimStart();
+        const contentNodes = [];
+        if (remainder) {
+          firstP.innerHTML = remainder;
+          contentNodes.push(firstP);
+        } else {
+          firstP.remove();
+        }
+        Array.from(bq.children).forEach(child => { if (child !== firstP) contentNodes.push(child); });
+        const contentHTML = contentNodes.map(n => n.outerHTML).join('');
+        const wrapper = document.createElement('div');
+        wrapper.className = `alert ${alertType.class}`;
+        wrapper.setAttribute('role', 'note');
+        wrapper.setAttribute('aria-label', type);
+        wrapper.innerHTML = `${alertType.icon}<div class="alert-content">${contentHTML}</div>`;
+        bq.dataset.alertProcessed = '1';
+        bq.replaceWith(wrapper);
+        return;
+      }
+      // Multiple markers in one paragraph: split into sequence of alerts.
+      const fragment = document.createDocumentFragment();
+      for (let i = 0; i < markers.length; i++) {
+        const cur = markers[i];
+        const next = markers[i + 1];
+        const type = cur.type;
+        const alertType = alertTypes[type];
+        if (!alertType) continue; // skip unknown
+        const startContent = cur.index + cur.len;
+        const endContent = next ? next.index : html.length;
+        let segment = html.slice(startContent, endContent).trim();
+        if (!segment) segment = '';
+        const wrapper = document.createElement('div');
+        wrapper.className = `alert ${alertType.class}`;
+        wrapper.setAttribute('role', 'note');
+        wrapper.setAttribute('aria-label', type);
+        wrapper.innerHTML = `${alertType.icon}<div class="alert-content">${segment}</div>`;
+        fragment.appendChild(wrapper);
+      }
       bq.dataset.alertProcessed = '1';
-      bq.replaceWith(wrapper);
+      bq.replaceWith(fragment);
     });
   }
 
