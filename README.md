@@ -41,6 +41,77 @@ brings gfm/commonmarks alert boxs to docsify
 > Be aware of these potential consequences.
 
 
+### Multilines Tips
+
+> [!TIP]
+> Here some multiline a useful tip to help you.
+
+
+### Warnings
+
+> [!WARNING]
+> Pay attention to this critical warning. 0000000 0000000 0000000 m0000000 0000000 0000000
+
+### Notes
+
+> [!NOTE]
+> This is some additional information.
+
+### Caution
+
+> [!CAUTION]
+> Be aware of these potential consequences.
+
+
+## Multiline Alert Stress Test
+
+### Multiline Note
+
+> [!NOTE]
+> This is the first line of a multiline note.
+> This is the second line of the note.
+> This is the third line of the note.
+> This is the fourth line of the note.
+> This is the fifth line of the note.
+
+### Multiline Tip
+
+> [!TIP]
+> This is the first line of a multiline tip.
+> This is the second line of the tip.
+> This is the third line of the tip.
+> This is the fourth line of the tip.
+> This is the fifth line of the tip.
+
+### Multiline Warning
+
+> [!WARNING]
+> This is the first line of a multiline warning.
+> This is the second line of the warning.
+> This is the third line of the warning.
+> This is the fourth line of the warning.
+> This is the fifth line of the warning.
+
+
+### Multiline Important
+
+> [!IMPORTANT]
+> This is the first line of a multiline important alert.
+> This is the second line of the important alert.
+> This is the third line of the important alert.
+> This is the fourth line of the important alert.
+> This is the fifth line of the important alert.
+
+### Multiline Caution
+
+> [!CAUTION]
+> This is the first line of a multiline caution.
+> This is the second line of the caution.
+> This is the third line of the caution.
+> This is the fourth line of the caution.
+> This is the fifth line of the caution.
+
+
 ## Installation
 
 To use the `docsify-alerts` plugin in your Docsify project add the following script to your `index.html`:

@@ -1,5 +1,6 @@
 (function () {
-  const alertTypes = {
+  // Configuration for supported alert types. Exposed for extensibility via window.$docsify.alertsConfig
+  const alertTypes = (window.$docsify && window.$docsify.alertsConfig && window.$docsify.alertsConfig.types) || {
     'NOTE': {
       class: 'note',
       icon: '<svg class="octicon octicon-info mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>'
@@ -29,11 +30,14 @@
       padding: 1em;
       border-left: 4px solid;
       display: flex;
-      align-items: center;
+      align-items: flex-start; /* Align icon with the first line of text */
       color: var(--alert-text-color, black); /* Use CSS variable for text color */
     }
     .alert svg {
       margin-right: 0.5em;
+      flex-shrink: 0; /* Prevent icon from shrinking */
+      width: 16px; /* Ensure a fixed width */
+      height: 16px; /* Ensure a fixed height */
     }
     .alert.note {
       background-color: #e7f3fe;
@@ -57,24 +61,62 @@
     }
   `;
 
-  function createAlertBox(type, content) {
-    const alertType = alertTypes[type.toUpperCase()];
-    if (!alertType) return content;
-
-    return `<div class="alert ${alertType.class}">
-              ${alertType.icon}
-              <div>${content}</div>
-            </div>`;
+  function escapeHTML(str) {
+    return str.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c));
   }
 
+  function createAlertBox(type, content) {
+    const alertType = alertTypes[type.toUpperCase()];
+    if (!alertType) return content; // Fallback: just return original content if unknown type
+    return `<div class="alert ${alertType.class}" role="note" aria-label="${type.toUpperCase()}">${alertType.icon}<div class="alert-content">${content}</div></div>`;
+  }
+
+  // Line-based parser to avoid greedy regex swallowing following headings and to support single-line alerts.
+  // Supports forms:
+  // > [!NOTE] Single line text
+  // > [!NOTE]\n> Line 1\n> Line 2
   function parseAlerts(content) {
-    return content.replace(/> \[!(\w+)\]\s*\n\s*>\s*(.*?)(\n|$)/g, (match, p1, p2, p3) => {
-      return createAlertBox(p1, p2) + (p3 === '\n' ? '\n' : '');
-    });
+    const lines = content.split(/\r?\n/);
+    const out = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const m = line.match(/^>\s*\[!(\w+)\]\s*(.*)$/);
+      if (!m) { out.push(line); continue; }
+      const type = m[1];
+      if (!alertTypes[type.toUpperCase()]) { // Not a supported type; treat as normal line
+        out.push(line);
+        continue;
+      }
+      const collected = [];
+      const firstRemainder = m[2];
+      if (firstRemainder) collected.push(firstRemainder.trim());
+      let j = i + 1;
+      while (j < lines.length) {
+        const ln = lines[j];
+        if (/^>\s*\[!(\w+)\]/.test(ln)) break; // next alert starts
+        if (/^>\s?.*/.test(ln)) {
+          // Quoted continuation line (can be just ">" or "> text")
+            const cleaned = ln.replace(/^>\s?/, '');
+            collected.push(cleaned);
+            j++;
+            continue;
+        }
+        // Non blockquote line ends this alert block
+        break;
+      }
+      i = j - 1; // advance
+      // Escape user content & preserve line breaks as <br>
+      const inner = collected.map(escapeHTML).join('<br>');
+      out.push(createAlertBox(type, inner));
+      out.push(''); // ensure blank line after alert so next heading is parsed correctly
+    }
+    return out.join('\n');
   }
 
   function injectStyles(css) {
+    if (document.getElementById('docsify-alerts-styles')) return; // avoid duplicates
     const style = document.createElement('style');
+    style.id = 'docsify-alerts-styles';
     style.type = 'text/css';
     style.appendChild(document.createTextNode(css));
     document.head.appendChild(style);
