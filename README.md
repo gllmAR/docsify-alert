@@ -165,3 +165,61 @@ You can override the default styles by specifying custom CSS in the alertStyles 
 </script>
 ```
 
+
+## Media & Random Content Stress Tests
+
+These examples include images, links, audio, video, iframes and raw HTML attempts inside alerts to observe rendering / escaping behavior.
+
+### Mixed Inline (Single Line) Note
+
+> [!NOTE] A quick reference with a link to [Docsify](https://docsify.js.org) and an inline image ![Placeholder 32x32](https://placehold.co/32x32.svg) plus some `code`.
+
+### Multiline Tip With Image & Link
+
+> [!TIP]
+> An embedded image below should appear (or its markdown) followed by a link.
+> ![Wide Placeholder](https://placehold.co/400x120/EEE/31343C.svg?text=Tip+Image)
+> Visit the [Placeholder Site](https://placeholder.com) for more test images.
+> Final line.
+
+### Important With Raw HTML (Should Be Escaped / Safe)
+
+> [!IMPORTANT]
+> Attempting raw HTML image tag: <img src="https://placehold.co/80x80.svg" alt="raw html" />
+> Attempting bold tag: <strong>Bold?</strong>
+> Attempting script tag (should be neutralized): <script>console.log('xss')</script>
+> End.
+
+### Warning With Audio & Video Markdown / HTML
+
+> [!WARNING]
+> Markdown style (not actual markdown media tag, just text) audio link: [Sample Audio](https://www.w3schools.com/html/horse.mp3)
+> Raw HTML audio (should be escaped): <audio controls src="https://www.w3schools.com/html/horse.mp3"></audio>
+> Raw HTML video (escaped): <video controls width="200"><source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4"></video>
+> End lines.
+
+### Caution With Iframe & Mixed Content
+
+> [!CAUTION]
+> Iframe attempt: <iframe src="https://example.com" width="200" height="60"></iframe>
+> Inline math attempt: <span class="math">E=mc^2</span>
+> Another image markdown ![Small](https://placehold.co/50x50.svg)
+> Link with title [Example](https://example.com "Example Title")
+> Done.
+
+### Chained Alerts (No Extra Blank Lines Between Source)
+> [!NOTE] First immediate note.
+> [!TIP] Second immediate tip.
+> [!WARNING] Third immediate warning.
+> [!CAUTION] Fourth immediate caution.
+> [!IMPORTANT] Fifth immediate important.
+
+### Deep Multiline Mixed
+
+> [!TIP]
+> Line 1 with link [OpenAI](https://openai.com)
+> Line 2 with image ![Img](https://placehold.co/64x64.svg)
+> Line 3 with raw html <em>emphasis?</em>
+> Line 4 code `const x = 1;`
+> Line 5 end.
+

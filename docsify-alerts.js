@@ -71,10 +71,8 @@
     return `<div class="alert ${alertType.class}" role="note" aria-label="${type.toUpperCase()}">${alertType.icon}<div class="alert-content">${content}</div></div>`;
   }
 
-  // Line-based parser to avoid greedy regex swallowing following headings and to support single-line alerts.
-  // Supports forms:
-  // > [!NOTE] Single line text
-  // > [!NOTE]\n> Line 1\n> Line 2
+  // Line-based parser (legacy 'pre' mode) to avoid greedy regex swallowing following headings and to support single-line alerts.
+  // In 'dom' mode we defer transformation until after markdown rendering to preserve markdown (images, links, code, etc.).
   function parseAlerts(content) {
     const lines = content.split(/\r?\n/);
     const out = [];
@@ -122,10 +120,101 @@
     document.head.appendChild(style);
   }
 
+  function transformBlockquotesDOM() {
+    const root = document.querySelector('.markdown-section') || document.body;
+    if (!root) return;
+    const blocks = root.querySelectorAll('blockquote');
+    blocks.forEach(bq => {
+      if (bq.dataset.alertProcessed) return;
+      const firstP = bq.querySelector('p');
+      if (!firstP) return;
+      const match = firstP.innerHTML.match(/^\[!(\w+)\]\s*(.*)$/);
+      if (!match) return;
+      const type = match[1].toUpperCase();
+      const alertType = alertTypes[type];
+      if (!alertType) return;
+      const remainder = match[2];
+      const contentNodes = [];
+      if (remainder) {
+        firstP.innerHTML = remainder; // keep first paragraph with remaining text
+        contentNodes.push(firstP);
+      } else {
+        firstP.remove();
+      }
+      // push remaining direct children (they are already rendered markdown: images, code blocks, etc.)
+      Array.from(bq.children).forEach(child => {
+        if (child !== firstP) contentNodes.push(child);
+      });
+      const contentHTML = contentNodes.map(n => n.outerHTML).join('');
+      const wrapper = document.createElement('div');
+      wrapper.className = `alert ${alertType.class}`;
+      wrapper.setAttribute('role', 'note');
+      wrapper.setAttribute('aria-label', type);
+      wrapper.innerHTML = `${alertType.icon}<div class="alert-content">${contentHTML}</div>`;
+      bq.dataset.alertProcessed = '1';
+      bq.replaceWith(wrapper);
+    });
+  }
+
   window.$docsify = window.$docsify || {};
+  const alertsConfig = window.$docsify.alertsConfig || {};
+  const mode = alertsConfig.mode || 'dom'; // 'dom' (default) or 'pre'
+  const lineBreakStrategy = alertsConfig.lineBreakStrategy || 'preserve'; // 'preserve' adds <br>-style breaks for each original line in DOM mode
+
+  function preserveLineBreaksForDOM(content) {
+    if (lineBreakStrategy !== 'preserve') return content;
+    const lines = content.split(/\r?\n/);
+    const out = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const m = line.match(/^>\s*\[!(\w+)\]\s*$/) || line.match(/^>\s*\[!(\w+)\]\s+.*$/);
+      if (!m) { out.push(line); continue; }
+      // Gather following continuation lines of this alert block (without consuming next alert start)
+      out.push(line); // push marker line as-is
+      let j = i + 1;
+      const continuationIdxs = [];
+      while (j < lines.length) {
+        const ln = lines[j];
+        if (/^>\s*\[!(\w+)\]/.test(ln)) break; // next alert
+        if (/^>\s?.*/.test(ln)) {
+          continuationIdxs.push(j);
+          j++;
+          continue;
+        }
+        break;
+      }
+      // Append two trailing spaces to force markdown line break for each continuation line except last
+      for (let k = 0; k < continuationIdxs.length; k++) {
+        const idx = continuationIdxs[k];
+        let ln = lines[idx];
+        if (k < continuationIdxs.length - 1) {
+          if (!/  $/.test(ln)) ln += '  ';
+        }
+        out.push(ln);
+      }
+      i = j - 1;
+    }
+    return out.join('\n');
+  }
+
   window.$docsify.plugins = (window.$docsify.plugins || []).concat(function (hook) {
     hook.beforeEach(function (content) {
-      return parseAlerts(content);
+      if (mode === 'pre') {
+        return parseAlerts(content);
+      }
+      // DOM mode: optionally mark line breaks so markdown keeps them as <br>
+      return preserveLineBreaksForDOM(content);
+    });
+
+    hook.afterEach(function (html, next) {
+      // In DOM mode we keep html unchanged here; actual transformation in doneEach to work on live DOM
+      next(html);
+    });
+
+    hook.doneEach(function() {
+      if (mode === 'dom') {
+        transformBlockquotesDOM();
+      }
     });
 
     hook.init(function() {
