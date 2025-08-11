@@ -1,5 +1,197 @@
 # docsify-alert
-brings gfm/commonmarks alert boxs to docsify
+
+Bring GitHub Flavored Markdown / CommonMark style callout (alert) blocks to Docsify with rich content support (images, code, media, iframes) and accessible, theme‑friendly rendering.
+
+---
+
+## Why
+
+Docsify does not natively support the popular `[!NOTE]`, `[!TIP]`, `[!WARNING]`, etc. syntax. This plugin:
+
+- Parses canonical callout syntax used across GitHub / docs ecosystems.
+- Preserves full markdown inside alerts (default DOM mode) — images, code, tables, media.
+- Avoids greedy regex pitfalls that swallow subsequent headings.
+- Adds accessible roles and customizable theming.
+- Provides a legacy pre-processing mode for ultra‑light transforms.
+
+---
+
+## Quick Start
+
+Add the script after Docsify in your `index.html`:
+
+```html
+<script src="https://gllmar.github.io/docsify-alert/docsify-alerts.js"></script>
+```
+
+Basic page configuration (DOM mode is default, no extra config needed):
+
+```html
+<script>
+  window.$docsify = {
+    name: 'Your Docs',
+    // optional customization examples
+    alertStyles: `
+      :root {
+        --alert-text-color: #111;
+      }
+      .alert.note { background:#e7f3fe; }
+    `,
+    alertsConfig: {
+      // mode: 'dom', // default; or 'pre'
+      // lineBreakStrategy: 'preserve' // default
+    }
+  }
+</script>
+```
+
+---
+
+## Supported Syntax
+
+Multiline form:
+
+```
+> [!NOTE]
+> First line
+> Second line
+```
+
+Single-line form:
+
+```
+> [!TIP] One line inline tip.
+```
+
+Supported default types: NOTE, TIP, IMPORTANT, WARNING, CAUTION.
+
+Anything else falls back to a normal blockquote (untouched).
+
+---
+
+## Modes
+
+| Mode | Purpose | Pros | Cons |
+|------|---------|------|------|
+| dom (default) | Transform after markdown render | Full markdown fidelity (tables, images, code, HTML) | Slight extra DOM pass |
+| pre | Transform before markdown render via line parsing | Very light, earlier injection | Inner markdown becomes plain text (line breaks inserted as `<br>`) |
+
+Select with:
+
+```js
+window.$docsify = { alertsConfig: { mode: 'pre' } }
+```
+
+---
+
+## Line Break Handling
+
+In `dom` mode we try to preserve multiline spacing. A strategy adds two trailing spaces to continuation lines so Docsify emits `<br>`. Disable (future) by setting `alertsConfig.lineBreakStrategy` (currently only `preserve`).
+
+---
+
+## Configuration API
+
+```js
+window.$docsify = {
+  alertsConfig: {
+    mode: 'dom',          // 'dom' | 'pre'
+    lineBreakStrategy: 'preserve',
+    types: {              // optional override or extension
+      INFO: { class: 'note', icon: '<svg></svg>' }
+    }
+  }
+}
+```
+
+`types` lets you extend or override built-in alert type map before the plugin initializes.
+
+---
+
+## Custom Styling
+
+Inject additional CSS via `alertStyles` (concatenated after defaults) or target classes:
+
+Classes generated:
+- `.alert` (container)
+- `.alert.note|tip|important|warning|caution`
+- `.alert-content` (inner wrapper)
+
+Variables you can define (recommended to add your own set):
+
+```css
+:root {
+  --alert-text-color: #222;
+  /* You can introduce your own e.g.: */
+  /* --alert-note-bg: #e7f3fe; */
+}
+```
+
+You can also completely omit default styling by overriding after load (future option: skipDefaults planned).
+
+---
+
+## Accessibility
+
+- Each alert wrapper: `role="note"` and `aria-label` set to type.
+- Icons have `aria-hidden="true"` implicitly via absence of title/desc; add a `<title>` in custom icons if desired.
+
+Planned improvements: Provide heading-like first line semantics & keyboard focus outline option.
+
+---
+
+## Security
+
+`dom` mode allows normal markdown sanitization path (Docsify processes content first). Raw HTML inside blockquotes is rendered per Docsify’s own rules. In `pre` mode inner text is HTML-escaped before insertion (preventing script execution). For untrusted docs content prefer `dom` mode + Docsify sanitize plugin.
+
+---
+
+## Extending Alert Types
+
+Define before plugin script load:
+
+```html
+<script>
+  window.$docsify = window.$docsify || {};
+  window.$docsify.alertsConfig = {
+    types: {
+      NOTE: window.$docsify?.alertsConfig?.types?.NOTE, // keep existing
+      SUCCESS: { class: 'tip', icon: '<svg><!-- custom --></svg>' }
+    }
+  }
+</script>
+```
+
+Then style `.alert.success` via CSS.
+
+---
+
+## Roadmap / Ideas
+
+- Custom alert titles: `[!NOTE Title]` syntax.
+- Collapsible alerts (details/summary wrapper opt-in).
+- Copy button for code-only alerts.
+- Per-type CSS variable palette (e.g. `--alert-warning-bg`).
+- Dark mode auto theme (prefers-color-scheme).
+- NPM package & versioned CDN.
+- Minified build & integrity hash example.
+- Test suite (Jest/Vitest) with fixtures for parsing edge cases.
+
+Contributions welcome — open an issue with suggestions.
+
+---
+
+## Changelog (excerpt)
+
+- 0.1.0: Initial release (regex based)
+- 0.2.0: Line-based parser, single-line alerts, XSS escaping
+- 0.3.0: DOM mode (default) for full markdown fidelity; `pre` legacy mode; line break preservation
+
+---
+
+## Original Feature List
+
+Brings GFM/CommonMark style alert boxes to Docsify.
 
 ## Features
 
