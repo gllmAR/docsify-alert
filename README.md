@@ -6,13 +6,13 @@ Bring GitHub Flavored Markdown / CommonMark style callout (alert) blocks to Docs
 
 ## Why
 
-Docsify does not natively support the popular `[!NOTE]`, `[!TIP]`, `[!WARNING]`, etc. syntax. This plugin:
+Docsify does not natively support the popular `[!NOTE]`, `[!TIP]`, `[!WARNING]`, etc. syntax. This tiny plugin:
 
 - Parses canonical callout syntax used across GitHub / docs ecosystems.
-- Preserves full markdown inside alerts (default DOM mode) — images, code, tables, media.
-- Avoids greedy regex pitfalls that swallow subsequent headings.
-- Adds accessible roles and customizable theming.
-- Provides a legacy pre-processing mode for ultra‑light transforms.
+- Preserves full markdown inside alerts (images, code, tables, media, iframes)
+- Avoids greedy regex pitfalls that swallow subsequent headings
+- Adds accessible roles and customizable theming
+- Supports multiple chained markers in a single blockquote
 
 ---
 
@@ -24,23 +24,20 @@ Add the script after Docsify in your `index.html`:
 <script src="https://gllmar.github.io/docsify-alert/docsify-alerts.js"></script>
 ```
 
-Basic page configuration (DOM mode is default, no extra config needed):
+Basic page configuration:
 
 ```html
 <script>
   window.$docsify = {
     name: 'Your Docs',
     // optional customization examples
-    alertStyles: `
+  alertStyles: ` /* optional overrides */
       :root {
         --alert-text-color: #111;
       }
       .alert.note { background:#e7f3fe; }
     `,
-    alertsConfig: {
-      // mode: 'dom', // default; or 'pre'
-      // lineBreakStrategy: 'preserve' // default
-    }
+  // alertsConfig: { types: { SUCCESS: { c: 'tip', i: '<svg>...</svg>' } } }
   }
 </script>
 ```
@@ -69,42 +66,32 @@ Anything else falls back to a normal blockquote (untouched).
 
 ---
 
-## Modes
+## Multiline Handling
 
-| Mode | Purpose | Pros | Cons |
-|------|---------|------|------|
-| dom (default) | Transform after markdown render | Full markdown fidelity (tables, images, code, HTML) | Slight extra DOM pass |
-| pre | Transform before markdown render via line parsing | Very light, earlier injection | Inner markdown becomes plain text (line breaks inserted as `<br>`) |
-
-Select with:
-
-```js
-window.$docsify = { alertsConfig: { mode: 'pre' } }
-```
+Prefix each line with `>` inside the block. The plugin keeps hard line breaks (it adds two trailing spaces where needed before Docsify renders). Paragraphs are preserved; add a blank `>` line if you want a new paragraph.
 
 ---
 
-## Line Break Handling
+## Configuration (Lightweight)
 
-In `dom` mode we try to preserve multiline spacing. A strategy adds two trailing spaces to continuation lines so Docsify emits `<br>`. Disable (future) by setting `alertsConfig.lineBreakStrategy` (currently only `preserve`).
+Optional extension via `alertsConfig.types`. Each entry: `{ c: 'css-class', i: 'inline-svg' }`.
 
----
+Example:
 
-## Configuration API
-
-```js
-window.$docsify = {
-  alertsConfig: {
-    mode: 'dom',          // 'dom' | 'pre'
-    lineBreakStrategy: 'preserve',
-    types: {              // optional override or extension
-      INFO: { class: 'note', icon: '<svg></svg>' }
+```html
+<script>
+  window.$docsify = {
+    alertsConfig: {
+      types: {
+        SUCCESS: { c: 'tip', i: '<svg viewBox="0 0 16 16" width="16" height="16"><path d="M6.5 10.793 3.354 7.646l.707-.707L6.5 9.379l5.439-5.44.707.708z"/></svg>' }
+      }
     }
   }
-}
+</script>
+<style>
+  .alert.success { /* custom styling if you used a unique class */ }
+</style>
 ```
-
-`types` lets you extend or override built-in alert type map before the plugin initializes.
 
 ---
 
@@ -127,7 +114,7 @@ Variables you can define (recommended to add your own set):
 }
 ```
 
-You can also completely omit default styling by overriding after load (future option: skipDefaults planned).
+You can override any rule after the injected defaults. (Future option: `skipDefaults` could let you opt out entirely.)
 
 ---
 
@@ -142,27 +129,13 @@ Planned improvements: Provide heading-like first line semantics & keyboard focus
 
 ## Security
 
-`dom` mode allows normal markdown sanitization path (Docsify processes content first). Raw HTML inside blockquotes is rendered per Docsify’s own rules. In `pre` mode inner text is HTML-escaped before insertion (preventing script execution). For untrusted docs content prefer `dom` mode + Docsify sanitize plugin.
+Raw markdown/HTML is first rendered by Docsify, then wrapped. If you allow untrusted contributors, also enable Docsify's sanitize plugin or strip unsafe HTML upstream (this plugin itself does not sanitize).
 
 ---
 
 ## Extending Alert Types
 
-Define before plugin script load:
-
-```html
-<script>
-  window.$docsify = window.$docsify || {};
-  window.$docsify.alertsConfig = {
-    types: {
-      NOTE: window.$docsify?.alertsConfig?.types?.NOTE, // keep existing
-      SUCCESS: { class: 'tip', icon: '<svg><!-- custom --></svg>' }
-    }
-  }
-</script>
-```
-
-Then style `.alert.success` via CSS.
+See lightweight config above. If you want a distinct class supply `c: 'success'` instead of reusing an existing one, then style `.alert.success { ... }`.
 
 ---
 
@@ -184,8 +157,9 @@ Contributions welcome — open an issue with suggestions.
 ## Changelog (excerpt)
 
 - 0.1.0: Initial release (regex based)
-- 0.2.0: Line-based parser, single-line alerts, XSS escaping
-- 0.3.0: DOM mode (default) for full markdown fidelity; `pre` legacy mode; line break preservation
+- 0.2.0: Line-based parser, single-line alerts, basic escaping
+- 0.3.0: DOM transformation, multiline & chained marker support
+- 0.4.0: Simplified single-mode minimal implementation (current)
 
 ---
 
